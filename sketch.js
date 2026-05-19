@@ -32,7 +32,7 @@ function setup() {
 
 function draw() {
   // 畫布背景顏色為 e7c6ff
-  background('#e7c6ff');
+  background('#ffccd5');
 
   // 計算影像顯示的寬高（畫布寬高之較小者的 60%，維持比例或依需求直接設定寬高 60%）
   // 這裡依據你的需求：顯示的影像寬高為整個畫布寬高的 60%
@@ -65,7 +65,16 @@ function draw() {
   pop(); // 恢復座標系，避免文字也被反轉
 
   // 顯示辨識結果文字
-  fill(0);
+  // 根據手勢變更文字顏色
+  if (gesture.includes("石頭")) {
+    fill('#800f2f');
+  } else if (gesture.includes("剪刀")) {
+    fill('#fff0f3');
+  } else if (gesture.includes("布")) {
+    fill('#c9184a');
+  } else {
+    fill(0);
+  }
   textSize(48);
   textAlign(CENTER, CENTER);
   text(gesture, width / 2, y / 2);
@@ -103,16 +112,38 @@ function drawKeypoints(hand, startX, startY, drawW, drawH) {
   let vWidth = video.width > 0 ? video.width : 640;
   let vHeight = video.height > 0 ? video.height : 480;
 
+  // 定義手掌關節的連接順序 (0: 手腕, 1-4: 拇指, 5-8: 食指, 9-12: 中指, 13-16: 無名指, 17-20: 小指)
+  let connections = [
+    [0, 1], [1, 2], [2, 3], [3, 4],     // 拇指
+    [0, 5], [5, 6], [6, 7], [7, 8],     // 食指
+    [0, 9], [9, 10], [10, 11], [11, 12], // 中指
+    [0, 13], [13, 14], [14, 15], [15, 16], // 無名指
+    [0, 17], [17, 18], [18, 19], [19, 20], // 小指
+    [5, 9], [9, 13], [13, 17]           // 掌心連線
+  ];
+
+  // 繪製連線
+  stroke('#ff758f');
+  strokeWeight(3);
+  for (let conn of connections) {
+    let p1 = hand.keypoints[conn[0]];
+    let p2 = hand.keypoints[conn[1]];
+    let x1 = map(p1.x, 0, vWidth, startX, startX + drawW);
+    let y1 = map(p1.y, 0, vHeight, startY, startY + drawH);
+    let x2 = map(p2.x, 0, vWidth, startX, startX + drawW);
+    let y2 = map(p2.y, 0, vHeight, startY, startY + drawH);
+    line(x1, y1, x2, y2);
+  }
+
+  // 繪製圓點
+  noStroke();
+  fill(255); // 關節點改為白色較為亮眼
   for (let i = 0; i < hand.keypoints.length; i++) {
     let kp = hand.keypoints[i];
     
-    // 將攝影機座標 (kp.x, kp.y) 映射到畫布上顯示影片的區域
     let mappedX = map(kp.x, 0, vWidth, startX, startX + drawW);
     let mappedY = map(kp.y, 0, vHeight, startY, startY + drawH);
-
-    fill(0, 255, 0);
-    noStroke();
-    circle(mappedX, mappedY, 10);
+    circle(mappedX, mappedY, 5); // 圓形變小
   }
 }
 
