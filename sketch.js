@@ -5,7 +5,8 @@ let gesture = "等待辨識...";
 
 function preload() {
   // 預載入手勢辨識模型
-  handPose = ml5.handPose({ flipped: true });
+  // 這裡不要設定 flipped，我們統一在繪圖層處理鏡像
+  handPose = ml5.handPose();
 }
 
 function gotHands(results) {
@@ -95,12 +96,16 @@ function calculateGesture(hand) {
 
 // 繪製手部關節點並進行座標轉換
 function drawKeypoints(hand, startX, startY, drawW, drawH) {
+  // 確保影片寬高已讀取，避免除以 0
+  let vWidth = video.width > 0 ? video.width : 640;
+  let vHeight = video.height > 0 ? video.height : 480;
+
   for (let i = 0; i < hand.keypoints.length; i++) {
     let kp = hand.keypoints[i];
     
     // 將攝影機座標 (kp.x, kp.y) 映射到畫布上顯示影片的區域
-    let mappedX = map(kp.x, 0, video.width, startX, startX + drawW);
-    let mappedY = map(kp.y, 0, video.height, startY, startY + drawH);
+    let mappedX = map(kp.x, 0, vWidth, startX, startX + drawW);
+    let mappedY = map(kp.y, 0, vHeight, startY, startY + drawH);
 
     fill(0, 255, 0);
     noStroke();
