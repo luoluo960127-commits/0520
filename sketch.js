@@ -17,7 +17,8 @@ function setup() {
   // 產生一個全螢幕的畫布
   createCanvas(windowWidth, windowHeight);
   // 擷取攝影機影像
-  video = createCapture(VIDEO, { flipped: true });
+  // 移除這裡的 flipped: true，我們改用畫布變換來處理鏡像，這樣效能較好且較容易控制
+  video = createCapture(VIDEO);
   // 隱藏預設的 HTML 影片元件，避免重複顯示
   video.hide();
 
@@ -36,21 +37,28 @@ function draw() {
   let x = (width - vW) / 2;
   let y = (height - vH) / 2;
 
-  // 將影像繪製在畫布中間
-  image(video, x, y, vW, vH);
+  // 鏡面反轉處理：使用 push/pop 確保只有影像和手部關節被反轉
+  push();
+  // 1. 先移動到影像顯示區域的右邊界
+  // 2. 將水平縮放設為 -1 (達成鏡像)
+  translate(x + vW, y);
+  scale(-1, 1);
+
+  // 將影像繪製在 (0, 0)，此時已經是鏡像狀態
+  image(video, 0, 0, vW, vH);
 
   // 處理偵測到的手勢
   if (hands.length > 0) {
     for (let hand of hands) {
       // 判斷手勢
       gesture = calculateGesture(hand);
-      
-      // 繪製手部關鍵點（需轉換座標）
-      drawKeypoints(hand, x, y, vW, vH);
+      // 繪製手部關鍵點（在反轉後的座標系中，起點為 0, 0）
+      drawKeypoints(hand, 0, 0, vW, vH);
     }
   } else {
     gesture = "請伸出手...";
   }
+  pop(); // 恢復座標系，避免文字也被反轉
 
   // 顯示辨識結果文字
   fill(0);
