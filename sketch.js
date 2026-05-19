@@ -3,6 +3,15 @@ let handPose;
 let hands = [];
 let gesture = "等待辨識...";
 
+// 遊戲相關變數
+let gameState = "WAITING"; // WAITING, COUNTDOWN, RESULT
+let countdownTimer = 0;
+let lastActionTime = 0;
+let computerChoice = "";
+let playerFinalGesture = "";
+let gameResultMessage = "";
+let computerColor = "#000000";
+
 function preload() {
   // preload 函數中不再初始化 ml5.handPose，改為在 setup 中初始化
 }
@@ -62,23 +71,90 @@ function draw() {
       if (gesture.includes("石頭")) handColor = '#800f2f';
       else if (gesture.includes("剪刀")) handColor = '#fff0f3';
       else if (gesture.includes("布")) handColor = '#c9184a';
+      else if (gesture === "6") handColor = '#ffb703'; // 6 的顏色
 
       // 繪製手部關鍵點與連線，傳入動態顏色
       drawKeypoints(hand, 0, 0, vW, vH, handColor);
       
-      // 設定文字顏色（與手部線條同步）
-      fill(handColor);
+      // 遊戲狀態機控制
+      if (gesture === "6" && (gameState === "WAITING" || gameState === "RESULT")) {
+        gameState = "COUNTDOWN";
+        countdownTimer = 3;
+        lastActionTime = millis();
+      }
     }
   } else {
     gesture = "請伸出手...";
-    fill(0); // 沒偵測到時用黑色
   }
   pop(); // 恢復座標系，避免文字也被反轉
 
-  // 顯示辨識結果文字
+  // 處理遊戲邏輯與顯示
+  displayGameUI(y);
+}
+
+function displayGameUI(yOffset) {
   textSize(48);
   textAlign(CENTER, CENTER);
-  text(gesture, width / 2, y / 2);
+  
+  if (gameState === "WAITING") {
+    fill(0);
+    text("比出「6」的手勢開始遊戲", width / 2, yOffset / 2);
+  } 
+  else if (gameState === "COUNTDOWN") {
+    let elapsed = millis() - lastActionTime;
+    if (elapsed < 3000) {
+      countdownTimer = 3 - Math.floor(elapsed / 1000);
+      fill('#c9184a');
+      text("準備... " + countdownTimer, width / 2, yOffset / 2);
+    } else {
+      // 倒數結束，決定勝負
+      runGameLogic();
+    }
+  } 
+  else if (gameState === "RESULT") {
+    fill(0);
+    textSize(32);
+    text(`你出: ${playerFinalGesture}  vs  電腦出: ${computerChoice}`, width / 2, yOffset / 2 - 30);
+    fill(computerColor);
+    textSize(48);
+    text(gameResultMessage, width / 2, yOffset / 2 + 30);
+    textSize(24);
+    fill(100);
+    text("再次比出「6」重新玩", width / 2, height - 50);
+  }
+}
+
+function runGameLogic() {
+  // 1. 決定玩家當時的手勢
+  playerFinalGesture = gesture;
+  if (playerFinalGesture === "辨識中..." || playerFinalGesture === "6") {
+    playerFinalGesture = "不知所云";
+  }
+
+  // 2. 電腦隨機選擇
+  let options = ["石頭 (Rock) ✊", "剪刀 (Scissors) ✌️", "布 (Paper) 🖐️"];
+  let choiceIdx = Math.floor(random(3));
+  computerChoice = options[choiceIdx];
+  
+  // 設定電腦對應的顏色
+  if (choiceIdx === 0) computerColor = "#800f2f";
+  else if (choiceIdx === 1) computerColor = "#ff758f"; // 稍微調整淺一點
+  else computerColor = "#c9184a";
+
+  // 3. 判斷勝負
+  if (playerFinalGesture === computerChoice) {
+    gameResultMessage = "平手！ 🤝";
+  } else if (
+    (playerFinalGesture.includes("石頭") && computerChoice.includes("剪刀")) ||
+    (playerFinalGesture.includes("剪刀") && computerChoice.includes("布")) ||
+    (playerFinalGesture.includes("布") && computerChoice.includes("石頭"))
+  ) {
+    gameResultMessage = "你贏了！ 🎉";
+  } else {
+    gameResultMessage = "你輸了... 😢";
+  }
+
+  gameState = "RESULT";
 }
 
 // 簡單的手勢判斷邏輯
@@ -94,6 +170,14 @@ function calculateGesture(hand) {
   let ringUp = hand.keypoints[16].y < hand.keypoints[14].y;
   let pinkyUp = hand.keypoints[20].y < hand.keypoints[18].y;
   let thumbUp = hand.keypoints[4].y < hand.keypoints[3].y; // 拇指簡易判斷
+  
+  // 偵測「6」的手勢 (拇指和小指伸出，其他收起來)
+  // 這裡稍微放寬條件，只檢查這兩根手指
+  let isSix = thumbUp && pinkyUp && !indexUp && !middleUp && !ringUp;
+  
+  if (isSix) {
+    return "6";
+  }
 
   // 判斷邏輯
   if (indexUp && middleUp && ringUp && pinkyUp) {
