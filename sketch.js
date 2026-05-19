@@ -4,13 +4,10 @@ let hands = [];
 let gesture = "等待辨識...";
 
 function preload() {
-  // 預載入手勢辨識模型
-  // 這裡不要設定 flipped，我們統一在繪圖層處理鏡像
-  handPose = ml5.handPose();
+  // preload 函數中不再初始化 ml5.handPose，改為在 setup 中初始化
 }
 
 function gotHands(results) {
-  // 取得辨識結果
   hands = results;
 }
 
@@ -19,12 +16,15 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   // 擷取攝影機影像
   // 移除這裡的 flipped: true，我們改用畫布變換來處理鏡像，這樣效能較好且較容易控制
-  video = createCapture(VIDEO);
+  video = createCapture(VIDEO, function(stream) {
+    // 隱藏預設的 HTML 影片元件，避免重複顯示
+    video.hide();
+    // 預載入手勢辨識模型，確保 ml5.js 和 video 都已準備好
+    handPose = ml5.handPose();
+    // 開始偵測手勢
+    handPose.detectStart(video, gotHands);
+  });
   // 隱藏預設的 HTML 影片元件，避免重複顯示
-  video.hide();
-
-  // 開始偵測手勢
-  handPose.detectStart(video, gotHands);
 }
 
 function draw() {
