@@ -15,15 +15,18 @@ function setup() {
   // 產生一個全螢幕的畫布
   createCanvas(windowWidth, windowHeight);
   // 擷取攝影機影像
-  // 移除這裡的 flipped: true，我們改用畫布變換來處理鏡像，這樣效能較好且較容易控制
-  video = createCapture(VIDEO, function(stream) {
-    // 隱藏預設的 HTML 影片元件，避免重複顯示
-    video.hide();
-    // 預載入手勢辨識模型，確保 ml5.js 和 video 都已準備好
-    handPose = ml5.handPose();
-    // 開始偵測手勢
-    handPose.detectStart(video, gotHands);
-  });
+  video = createCapture(VIDEO);
+  video.hide();
+
+  // 檢查 ml5 是否成功載入再初始化模型
+  if (typeof ml5 !== 'undefined') {
+    handPose = ml5.handPose(function() {
+      console.log("模型準備好了！");
+      handPose.detectStart(video, gotHands);
+    });
+  } else {
+    console.error("錯誤：ml5.js 未載入，請檢查 index.html 中的 script 標籤。");
+  }
   // 隱藏預設的 HTML 影片元件，避免重複顯示
 }
 
