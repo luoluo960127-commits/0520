@@ -56,25 +56,26 @@ function draw() {
     for (let hand of hands) {
       // 判斷手勢
       gesture = calculateGesture(hand);
-      // 繪製手部關鍵點（在反轉後的座標系中，起點為 0, 0）
-      drawKeypoints(hand, 0, 0, vW, vH);
+      
+      // 根據手勢決定顏色
+      let handColor = '#ff758f'; // 預設粉紅
+      if (gesture.includes("石頭")) handColor = '#800f2f';
+      else if (gesture.includes("剪刀")) handColor = '#fff0f3';
+      else if (gesture.includes("布")) handColor = '#c9184a';
+
+      // 繪製手部關鍵點與連線，傳入動態顏色
+      drawKeypoints(hand, 0, 0, vW, vH, handColor);
+      
+      // 設定文字顏色（與手部線條同步）
+      fill(handColor);
     }
   } else {
     gesture = "請伸出手...";
+    fill(0); // 沒偵測到時用黑色
   }
   pop(); // 恢復座標系，避免文字也被反轉
 
   // 顯示辨識結果文字
-  // 根據手勢變更文字顏色
-  if (gesture.includes("石頭")) {
-    fill('#800f2f');
-  } else if (gesture.includes("剪刀")) {
-    fill('#fff0f3');
-  } else if (gesture.includes("布")) {
-    fill('#c9184a');
-  } else {
-    fill(0);
-  }
   textSize(48);
   textAlign(CENTER, CENTER);
   text(gesture, width / 2, y / 2);
@@ -107,7 +108,7 @@ function calculateGesture(hand) {
 }
 
 // 繪製手部關節點並進行座標轉換
-function drawKeypoints(hand, startX, startY, drawW, drawH) {
+function drawKeypoints(hand, startX, startY, drawW, drawH, handColor) {
   // 確保影片寬高已讀取，避免除以 0
   let vWidth = video.width > 0 ? video.width : 640;
   let vHeight = video.height > 0 ? video.height : 480;
@@ -123,7 +124,7 @@ function drawKeypoints(hand, startX, startY, drawW, drawH) {
   ];
 
   // 繪製連線
-  stroke('#ff758f');
+  stroke(handColor); // 使用動態變更的顏色
   strokeWeight(3);
   for (let conn of connections) {
     let p1 = hand.keypoints[conn[0]];
