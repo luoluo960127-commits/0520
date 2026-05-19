@@ -11,6 +11,7 @@ let computerChoice = "";
 let playerFinalGesture = "";
 let gameResultMessage = "";
 let computerColor = "#000000";
+let particles = [];
 
 function preload() {
   // preload 函數中不再初始化 ml5.handPose，改為在 setup 中初始化
@@ -90,6 +91,15 @@ function draw() {
 
   // 處理遊戲邏輯與顯示
   displayGameUI(y);
+
+  // 更新與顯示煙火粒子
+  for (let i = particles.length - 1; i >= 0; i--) {
+    particles[i].update();
+    particles[i].show();
+    if (particles[i].isDead()) {
+      particles.splice(i, 1);
+    }
+  }
 }
 
 function displayGameUI(yOffset) {
@@ -150,6 +160,10 @@ function runGameLogic() {
     (playerFinalGesture.includes("布") && computerChoice.includes("石頭"))
   ) {
     gameResultMessage = "你贏了！ 🎉";
+    // 贏了就放煙火！
+    spawnFirework(width * 0.2, height * 0.5);
+    spawnFirework(width * 0.8, height * 0.5);
+    spawnFirework(width * 0.5, height * 0.3);
   } else {
     gameResultMessage = "你輸了... 😢";
   }
@@ -235,4 +249,35 @@ function drawKeypoints(hand, startX, startY, drawW, drawH, handColor) {
 function windowResized() {
   // 當視窗大小改變時，重新調整畫布大小
   resizeCanvas(windowWidth, windowHeight);
+}
+
+// 煙火粒子類別
+class Particle {
+  constructor(x, y, col) {
+    this.pos = createVector(x, y);
+    this.vel = p5.Vector.random2D().mult(random(2, 10));
+    this.acc = createVector(0, 0.15); // 重力
+    this.lifespan = 255;
+    this.color = col;
+  }
+  update() {
+    this.vel.add(this.acc);
+    this.pos.add(this.vel);
+    this.lifespan -= 5;
+  }
+  show() {
+    let c = color(this.color);
+    fill(red(c), green(c), blue(c), this.lifespan);
+    noStroke();
+    ellipse(this.pos.x, this.pos.y, random(3, 6));
+  }
+  isDead() { return this.lifespan < 0; }
+}
+
+function spawnFirework(x, y) {
+  let p5Colors = ['#800f2f', '#c9184a', '#ff758f', '#ffb703'];
+  let col = random(p5Colors);
+  for (let i = 0; i < 40; i++) {
+    particles.push(new Particle(x, y, col));
+  }
 }
